@@ -1,0 +1,6 @@
+[all:vars]
+ansible_connection=ssh
+
+# Normally - localhost
+[workstations]
+localhost ansible_host=192.168.1.165 ansible_user=aaron ansible_password=pewpew  ansible_python_interpreter=/usr/bin/python3
