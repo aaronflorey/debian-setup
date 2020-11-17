@@ -3,10 +3,11 @@
   roles:
     - role: workstation
     - role: jaredhocutt.gnome_extensions
+    - role: geerlingguy.composer
   vars:
     gnome_extension_ids:
       - 964
       - 770
-      - 307
+      - 1160
       - 120
       - 3628

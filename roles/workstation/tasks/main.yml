@@ -321,12 +321,10 @@
   become: true
   flatpak:
     name: 
+      - org.mozilla.firefox
       - com.spotify.Client
       - com.jetbrains.PhpStorm
       - com.axosoft.GitKraken
       - com.visualstudio.code
       - com.slack.Slack
       - com.discordapp.Discord
-
-# - name: Download Composer
-#   script: scripts/composer-setup.sh
