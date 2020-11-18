@@ -1,13 +1,22 @@
 ---
 - hosts: workstations
   roles:
-    - role: workstation
+    # - role: workstation
     - role: jaredhocutt.gnome_extensions
-    - role: geerlingguy.composer
+    - {role: geerlingguy.composer, become: true}
   vars:
     gnome_extension_ids:
       - 964
       - 770
       - 1160
       - 120
-      - 3628
+      - 1228
+      - 104
+      - 1465
+    composer_global_packages: [
+      {name: 'laravel/installer'},
+      {name: 'cpriego/valet-linux'}
+    ]
+    composer_home_path: '/opt/composer'
+    composer_home_owner: root
+    composer_home_group: root

@@ -25,7 +25,6 @@
       - gnome-menus
       - libcanberra-gtk-module
       - arc-theme
-      - papirus-icon-theme
       - openssh-server
       - openssh-client
       - openvpn
@@ -57,10 +56,15 @@
       - debsums
       - debsecan
       - libpam-tmpdir
-      - apt-listbugs
       - flatpak
       - gnome-software-plugin-flatpak
       - terminator
+      - snapd
+      - network-manager 
+      - libnss3-tools 
+      - jq 
+      - xsel
+      - nginx
   become: true
 
 # Ensure relevant APT keys are present on the system to support extra repositories added later.
@@ -74,15 +78,19 @@
     - '4CCA1EAF950CEE4AB83976DCA040830F7FAC5991' # Google-1
     - 'EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796' # Google-2
     - '15058500A0235D97F5D10063B188E2B695BD4743' # deb.sury.org
+    - 'E58A9D36647CAE7F' # Papirus
   become: true
 
 - name: Add an Apt signing key, uses whichever key is at the URL
   apt_key:
-    url: {{item}}
+    url: '{{item}}'
     state: present
+  become: true
   with_items:
     - https://insomnia.rest/keys/debian-public.key.asc
     - https://bintray.com/user/downloadSubjectPublicKey?username=bintray
+    - https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    - https://baltocdn.com/helm/signing.asc
 
 # Enable extra repositories needed on the system. Mostly development, productivity etc.
 - name: Enable extra repos
@@ -92,8 +100,11 @@
     - {file: 'yarn', repo: 'deb https://dl.yarnpkg.com/debian/ stable main'}
     - {file: 'google-chrome', repo: 'deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main'}
     - {file: 'php-sury-org', repo: 'deb https://packages.sury.org/php/ {{ansible_distribution_release}} main'}
-    - {file: 'insomnia', repo: 'deb https://dl.bintray.com/getinsomnia/Insomnia'}
+    - {file: 'insomnia', repo: 'deb https://dl.bintray.com/getinsomnia/Insomnia /'}
     - {file: 'beekeeper', repo: 'deb https://dl.bintray.com/beekeeper-studio/releases disco main'}
+    - {file: 'papirus', repo: 'deb http://ppa.launchpad.net/papirus/papirus/ubuntu focal main'}
+    - {file: 'kubernetes', repo: 'deb https://apt.kubernetes.io/ kubernetes-xenial main'}
+    - {file: 'helm', repo: 'deb https://baltocdn.com/helm/stable/debian/ all main'}
   become: true
 
 - name: Ensure my packages
@@ -102,6 +113,7 @@
     update_cache: yes
     name:
       - make
+      - papirus-icon-theme
       - cmake
       - openvpn
       - meld
@@ -122,9 +134,10 @@
       - php7.4-pdo
       - php7.4-xml
       - php7.4-apcu
+      - php7.4-fpm
+      - inotify-tools
       - filezilla
       - vlc
-      - virt-manager
       - libcurl4-gnutls-dev
       - libarchive-dev
       - libssh-dev
@@ -136,11 +149,15 @@
       - python3-psutil
       - insomnia
       - beekeeper-studio
+      - kubectl
+      - helm
   become: true
 
 - name: install deb files
   apt: deb={{item}} state=present
   with_items:
+    - https://discordapp.com/api/download?platform=linux&format=deb
+    - https://downloads.slack-edge.com/linux_releases/slack-desktop-4.11.1-amd64.deb
     - https://updates.getmailspring.com/download?platform=linuxDeb
     - https://www.termius.com/download/linux/Termius.deb
     - https://github.com/Ulauncher/Ulauncher/releases/download/5.8.1/ulauncher_5.8.1_all.deb
@@ -238,6 +255,16 @@
   file: path='/home/{{host_username}}/.ssh' state=directory mode='0700' owner='{{host_username}}' group='{{host_username}}'
   become: true
 
+- name: create needed directories
+  file: 
+    owner: '{{host_username}}' 
+    group: '{{host_username}}'
+    path: '/home/{{host_username}}/{{item}}'
+    state: directory 
+    recurse: true
+  with_items:
+    - config/terminator
+
 - name: Ensure personal dot files
   copy: src='{{item.src}}'  dest='{{item.dest}}' mode='0600' owner='{{host_username}}' group='{{host_username}}'
   loop:
@@ -247,6 +274,7 @@
     - {src: dots/gitignore, dest: '/home/{{host_username}}/.gitignore'}
     - {src: dots/curlrc, dest: '/home/{{host_username}}/.curlrc'}
     - {src: dots/p10k, dest: '/home/{{host_username}}/.p10k.zsh'}
+    - {src: terminator, dest: '/home/{{host_username}}/config/terminator/config'}
 
 - name: Ensure personal files (from templates)
   template: src='{{item.src}}'  dest='{{item.dest}}' mode='0600' owner='{{host_username}}' group='{{host_username}}'
@@ -310,21 +338,28 @@
   changed_when: false # ignore
   become: true
 
-- name: Install composer globally
-  script:
-    cmd: scripts/composer-setup.sh
-    chdir: /tmp
-  changed_when: false # ignore
+
+- name: Add the flathub flatpak repository remote
   become: true
+  community.general.flatpak_remote:
+    name: flathub
+    state: present
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
 - name: Install flatpak apps
   become: true
   flatpak:
+    name: '{{item}}'
+  with_items:
+    - org.mozilla.firefox
+    - com.spotify.Client
+    - com.jetbrains.PhpStorm
+    - com.axosoft.GitKraken
+    - com.visualstudio.code      
+
+- name: Install snap apps
+  become: true
+  snap:
+    classic: true
     name: 
-      - org.mozilla.firefox
-      - com.spotify.Client
-      - com.jetbrains.PhpStorm
-      - com.axosoft.GitKraken
-      - com.visualstudio.code
-      - com.slack.Slack
-      - com.discordapp.Discord
+      - kontena-lens
