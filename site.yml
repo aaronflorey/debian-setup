@@ -1,7 +1,7 @@
 ---
 - hosts: workstations
   roles:
-    # - role: workstation
+    - role: workstation
     - role: jaredhocutt.gnome_extensions
     - {role: geerlingguy.composer, become: true}
   vars:
@@ -10,9 +10,9 @@
       - 770
       - 1160
       - 120
-      - 1228
       - 104
       - 1465
+      - 3628
     composer_global_packages: [
       {name: 'laravel/installer'},
       {name: 'cpriego/valet-linux'}

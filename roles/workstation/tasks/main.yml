@@ -1,12 +1,4 @@
 ---
-- name: Remove cdrom entries in /apt/sources/list
-  lineinfile:
-    path: /etc/apt/sources.list
-    state: absent
-    regexp: '^deb cdrom'
-  notify: [Update APT]
-  become: true
-
 # Flush handlers for previous task.
 - meta: flush_handlers
 
@@ -16,27 +8,19 @@
     state: latest
     name:
       - gpg
-      - plymouth
-      - plymouth-themes
-      - gnome-core
-      - gdm3
       - gnome-color-manager
       - gnome-tweaks
       - gnome-menus
+      - gnome-shell-extensions
       - libcanberra-gtk-module
       - arc-theme
+      - adapta-gtk-theme
       - openssh-server
       - openssh-client
-      - openvpn
       - file-roller
-      - network-manager
-      - network-manager-gnome
-      - network-manager-openvpn
-      - network-manager-openvpn-gnome
       - resolvconf
       - dnsmasq
       - dnsutils
-      - debian-archive-keyring
       - curl
       - wget
       - gnupg
@@ -50,9 +34,7 @@
       - unzip
       - p7zip
       - zsh
-      - nftables
       - hexedit
-      - debian-goodies
       - debsums
       - debsecan
       - libpam-tmpdir
@@ -73,11 +55,7 @@
     keyserver: keyserver.ubuntu.com
     id: '{{item}}'
   loop:
-    - '9DC858229FC7DD38854AE2D88D81803C0EBFCD88' # Docker
     - '72ECF46A56B4AD39C907BBB71646B01B86E50310' # Yarn
-    - '4CCA1EAF950CEE4AB83976DCA040830F7FAC5991' # Google-1
-    - 'EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796' # Google-2
-    - '15058500A0235D97F5D10063B188E2B695BD4743' # deb.sury.org
     - 'E58A9D36647CAE7F' # Papirus
   become: true
 
@@ -91,33 +69,34 @@
     - https://bintray.com/user/downloadSubjectPublicKey?username=bintray
     - https://packages.cloud.google.com/apt/doc/apt-key.gpg
     - https://baltocdn.com/helm/signing.asc
+    - http://deb.tableplus.com/apt.tableplus.com.gpg.key
+    - https://download.docker.com/linux/ubuntu/gpg
 
 # Enable extra repositories needed on the system. Mostly development, productivity etc.
 - name: Enable extra repos
   apt_repository: filename='{{item.file}}' repo='{{item.repo}}' state=present
   loop:
-    - {file: 'docker', repo: 'deb [arch=amd64] https://download.docker.com/linux/debian {{ansible_distribution_release}} stable'}
     - {file: 'yarn', repo: 'deb https://dl.yarnpkg.com/debian/ stable main'}
-    - {file: 'google-chrome', repo: 'deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main'}
-    - {file: 'php-sury-org', repo: 'deb https://packages.sury.org/php/ {{ansible_distribution_release}} main'}
     - {file: 'insomnia', repo: 'deb https://dl.bintray.com/getinsomnia/Insomnia /'}
-    - {file: 'beekeeper', repo: 'deb https://dl.bintray.com/beekeeper-studio/releases disco main'}
-    - {file: 'papirus', repo: 'deb http://ppa.launchpad.net/papirus/papirus/ubuntu focal main'}
+    - {file: 'tableplus', repo: 'deb [arch=amd64] https://deb.tableplus.com/debian tableplus main'}
+    - {file: 'papirus', repo: 'ppa:papirus/papirus'}
     - {file: 'kubernetes', repo: 'deb https://apt.kubernetes.io/ kubernetes-xenial main'}
     - {file: 'helm', repo: 'deb https://baltocdn.com/helm/stable/debian/ all main'}
+    - {file: 'ulauncher', repo: 'ppa:agornostal/ulauncher'}
+    - {file: 'docker', repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'}
   become: true
 
 - name: Ensure my packages
   apt: 
-    state: present
+    state: latest
     update_cache: yes
     name:
       - make
+      - ubuntu-gnome-desktop
       - papirus-icon-theme
       - cmake
       - openvpn
       - meld
-      - docker-ce
       - python3
       - python3-pip
       - nodejs
@@ -148,9 +127,13 @@
       - gnome-tweaks
       - python3-psutil
       - insomnia
-      - beekeeper-studio
       - kubectl
       - helm
+      - tableplus
+      - ulauncher
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io
   become: true
 
 - name: install deb files
@@ -158,9 +141,7 @@
   with_items:
     - https://discordapp.com/api/download?platform=linux&format=deb
     - https://downloads.slack-edge.com/linux_releases/slack-desktop-4.11.1-amd64.deb
-    - https://updates.getmailspring.com/download?platform=linuxDeb
     - https://www.termius.com/download/linux/Termius.deb
-    - https://github.com/Ulauncher/Ulauncher/releases/download/5.8.1/ulauncher_5.8.1_all.deb
   become: true
 
 - name: Ensure system files
@@ -173,60 +154,20 @@
     - {src: motd, dest: /etc/motd} # User motd
   become: true
 
-# Configure network manager
-- name: Copy NetworkManager.conf
-  copy: src=NetworkManager.conf dest=/etc/NetworkManager/NetworkManager.conf mode='0644' owner=root group=root
-  notify: [Restart NetworkManager]
-  become: true
-
-# Configure SSH server
-- name: Copy sshd_config
-  copy: src=sshd_config dest=/etc/ssh/sshd_config mode='0644' owner=root group=root
-  notify: [Restart sshd]
-  become: true
-
-# Configure local caching DNS
-- name: Copy dnsmasq config
-  copy: src=dnsmasq.conf dest=/etc/dnsmasq.d/local.conf mode='0644' owner=root group=root
-  notify: [Restart dnsmasq]
-  become: true
-
-# Ensure network interfaces are scanned in certain order for resolvconf
-- name: Copy interface-order
-  copy: src=interface-order dest=/etc/resolvconf/interface-order mode='0644' owner=root group=root
-  notify: [Update resolvconf]
-  become: true
-
-# Configure default system UMASK (https://wiki.debian.org/Permissions)
-- name: Ensure default umask
-  lineinfile:
-    path: /etc/pam.d/common-session
-    line: 'session optional pam_umask.so umask=022'
-  become: true
-
-# Configure boot screen
-- name: Copy plymouthd.conf
-  copy: src=plymouthd.conf dest=/etc/plymouth/plymouthd.conf mode='0644' owner=root group=root
-  notify: [Update initramfs]
-  become: true
-
 - name: Install oh-my-zsh for self
   git: repo='https://github.com/ohmyzsh/ohmyzsh' dest='/home/{{host_username}}/.oh-my-zsh'
 
-- name: oh-my-zsh autosuggestions
-  git: repo='https://github.com/zsh-users/zsh-autosuggestions' dest='/home/{{host_username}}/.oh-my-zsh/plugins/zsh-autosuggestions'
-  
+- name: oh-my-zsh plugins
+  git: repo='{{item.repo}}' dest='/home/{{host_username}}/.oh-my-zsh/plugins/{{item.name}}'
+  loop:
+    - {repo: 'https://github.com/zsh-users/zsh-autosuggestions', name: 'zsh-autosuggestions'}
+    - {repo: 'https://github.com/zsh-users/zsh-syntax-highlighting', name: 'zsh-syntax-highlighting'}
+
 - name: Install powerlevel10k for self
   git: repo='https://github.com/romkatv/powerlevel10k.git' dest='/home/{{host_username}}/.oh-my-zsh/themes/powerlevel10k'
 
 - name: Install fonts
   copy: src=fonts/ dest=/usr/local/share/fonts
-  become: true
-
-# Configure firewall
-- name: Install nftables.conf
-  copy: src=nftables.conf dest=/etc/nftables.conf
-  notify: [Reload nftables]
   become: true
 
 - name: Ensure group "docker" exists
@@ -275,6 +216,10 @@
     - {src: dots/curlrc, dest: '/home/{{host_username}}/.curlrc'}
     - {src: dots/p10k, dest: '/home/{{host_username}}/.p10k.zsh'}
     - {src: terminator, dest: '/home/{{host_username}}/config/terminator/config'}
+    - {src: dconf.ini, dest: '/home/{{host_username}}/'}
+
+- name: import dconf
+  shell: cat '/home/{{host_username}}/dconf.ini' | dconf load /
 
 - name: Ensure personal files (from templates)
   template: src='{{item.src}}'  dest='{{item.dest}}' mode='0600' owner='{{host_username}}' group='{{host_username}}'
@@ -295,41 +240,15 @@
     - '/home/{{host_username}}/dots'
   become: true
 
-# Configure icons in Nautilus for some directories.
-# - name: Set home folder icons
-#   shell: 'gio set -t string {{item.dir}} metadata::custom-icon file://{{item.icon}}'
-#   changed_when: false # Really not that important...
-#   loop:
-#     - {dir: '/home/{{host_username}}/dots', icon: '/usr/share/icons/Papirus/64x64/places/folder-orange-development.svg'}
-
 # Install python extra packages and ensure they are up to date.
 - name: Ensure pip3 packages
   pip: name='{{item}}' executable=pip3 state=latest
   with_items:
-    # - ansible # Yo dawg i herd you like Ansible so we put a Ansible in yo Ansible so you can automate while u automate
+    - ansible 
     - pipenv
     - docker-compose
     - awscli
   become: true
-
-# Make sure system services we explicitly need are running and enabled.
-- name: Enable services
-  service: name='{{item}}' state=started enabled=yes
-  loop:
-    - gdm
-    - sshd
-    - dnsmasq
-    - resolvconf
-    - nftables
-  become: yes
-
-# Disable services we do not need.
-- name: Disable services
-  service: name='{{item}}' state=stopped enabled=no
-  loop:
-    - systemd-networkd
-    - systemd-resolved
-  become: yes
 
 - name: Install Node global packages (yarn)
   yarn: name='{{item}}' global=yes state=latest production=yes
@@ -363,3 +282,4 @@
     classic: true
     name: 
       - kontena-lens
+      - mailspring
