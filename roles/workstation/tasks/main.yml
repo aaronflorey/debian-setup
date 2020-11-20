@@ -57,6 +57,7 @@
   loop:
     - '72ECF46A56B4AD39C907BBB71646B01B86E50310' # Yarn
     - 'E58A9D36647CAE7F' # Papirus
+    - '7568D9BB55FF9E5287D586017AE645C0CF8E292A'
   become: true
 
 - name: Add an Apt signing key, uses whichever key is at the URL
@@ -71,6 +72,7 @@
     - https://baltocdn.com/helm/signing.asc
     - http://deb.tableplus.com/apt.tableplus.com.gpg.key
     - https://download.docker.com/linux/ubuntu/gpg
+    - https://linux-clients.seafile.com/seafile.asc
 
 # Enable extra repositories needed on the system. Mostly development, productivity etc.
 - name: Enable extra repos
@@ -80,10 +82,13 @@
     - {file: 'insomnia', repo: 'deb https://dl.bintray.com/getinsomnia/Insomnia /'}
     - {file: 'tableplus', repo: 'deb [arch=amd64] https://deb.tableplus.com/debian tableplus main'}
     - {file: 'papirus', repo: 'ppa:papirus/papirus'}
+    - {file: 'php', repo: 'ppa:ondrej/php'}
     - {file: 'kubernetes', repo: 'deb https://apt.kubernetes.io/ kubernetes-xenial main'}
     - {file: 'helm', repo: 'deb https://baltocdn.com/helm/stable/debian/ all main'}
     - {file: 'ulauncher', repo: 'ppa:agornostal/ulauncher'}
     - {file: 'docker', repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'}
+    - {file: 'pritunl', repo: 'deb https://repo.pritunl.com/stable/apt focal main'}
+    - {file: 'seafile', repo: 'deb https://linux-clients.seafile.com/seafile-deb/focal/ stable main'}
   become: true
 
 - name: Ensure my packages
@@ -134,6 +139,8 @@
       - docker-ce 
       - docker-ce-cli 
       - containerd.io
+      - pritunl-client-electron
+      - seafile-gui
   become: true
 
 - name: install deb files
