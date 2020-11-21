@@ -71,6 +71,7 @@
     - https://baltocdn.com/helm/signing.asc
     - http://deb.tableplus.com/apt.tableplus.com.gpg.key
     - https://download.docker.com/linux/ubuntu/gpg
+    - https://apt.releases.hashicorp.com/gpg
 
 # Enable extra repositories needed on the system. Mostly development, productivity etc.
 - name: Enable extra repos
@@ -84,6 +85,7 @@
     - {file: 'helm', repo: 'deb https://baltocdn.com/helm/stable/debian/ all main'}
     - {file: 'ulauncher', repo: 'ppa:agornostal/ulauncher'}
     - {file: 'docker', repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'}
+    - {file: 'terraform', repo: 'deb [arch=amd64] https://apt.releases.hashicorp.com focal main'}
   become: true
 
 - name: Ensure my packages
@@ -114,6 +116,8 @@
       - php7.4-xml
       - php7.4-apcu
       - php7.4-fpm
+      - php7.4-gd
+      - php7.4-zip
       - inotify-tools
       - filezilla
       - vlc
@@ -134,6 +138,7 @@
       - docker-ce 
       - docker-ce-cli 
       - containerd.io
+      - terraform
   become: true
 
 - name: install deb files
@@ -272,9 +277,9 @@
   with_items:
     - org.mozilla.firefox
     - com.spotify.Client
-    - com.jetbrains.PhpStorm
     - com.axosoft.GitKraken
-    - com.visualstudio.code      
+    - com.visualstudio.code
+    - org.onlyoffice.desktopeditors
 
 - name: Install snap apps
   become: true
@@ -282,4 +287,7 @@
     classic: true
     name: 
       - kontena-lens
-      - mailspring
+      - bluemail
+      - screencloud
+      - auryo
+      - dropbox
