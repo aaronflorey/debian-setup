@@ -1,5 +1,7 @@
 [global_config]
 [keybindings]
+  new_tab = <Primary>t
+  copy = <Primary><Shift>c
 [profiles]
   [[default]]
     background_darkness = 0.92

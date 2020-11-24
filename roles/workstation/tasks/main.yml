@@ -74,6 +74,8 @@
     - https://download.docker.com/linux/ubuntu/gpg
     - https://linux-clients.seafile.com/seafile.asc
     - https://apt.releases.hashicorp.com/gpg
+    - https://mariadb.org/mariadb_release_signing_key.asc
+    - https://dl.yarnpkg.com/debian/pubkey.gpg 
 
 # Enable extra repositories needed on the system. Mostly development, productivity etc.
 - name: Enable extra repos
@@ -89,8 +91,10 @@
     - {file: 'ulauncher', repo: 'ppa:agornostal/ulauncher'}
     - {file: 'docker', repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable'}
     - {file: 'pritunl', repo: 'deb https://repo.pritunl.com/stable/apt focal main'}
-    - {file: 'seafile', repo: 'deb https://linux-clients.seafile.com/seafile-deb/focal/ stable main'}
-    - {file: 'terraform', repo: 'deb [arch=amd64] https://apt.releases.hashicorp.com focal main'}
+    - {file: 'seafile', repo: 'deb [arch=amd64] https://linux-clients.seafile.com/seafile-deb/focal/ stable main'}
+    - {file: 'terraform', repo: 'deb https://apt.releases.hashicorp.com focal main'}
+    - {file: 'mariadb', repo: 'deb [arch=amd64] https://mariadb.mirror.digitalpacific.com.au/repo/10.5/ubuntu groovy main'}
+    - {file: 'yarn', repo: 'deb https://dl.yarnpkg.com/debian/ stable main'}
   become: true
 
 - name: Ensure my packages
@@ -123,6 +127,9 @@
       - php7.4-fpm
       - php7.4-gd
       - php7.4-zip
+      - php7.4-sqlite3
+      - php7.4-imagick
+      - sqlite3
       - inotify-tools
       - filezilla
       - vlc
@@ -146,6 +153,11 @@
       - terraform
       - pritunl-client-electron
       - seafile-gui
+      - mariadb-server
+      - mariadb-client
+      - appimagelauncher
+      - neofetch
+      - clementine
   become: true
 
 - name: install deb files
@@ -153,7 +165,8 @@
   with_items:
     - https://discordapp.com/api/download?platform=linux&format=deb
     - https://downloads.slack-edge.com/linux_releases/slack-desktop-4.11.1-amd64.deb
-    - https://www.termius.com/download/linux/Termius.deb
+    - https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    - https://synapse-electron.s3-ap-southeast-2.amazonaws.com/synapse-electron_0.2.11_amd64.deb
   become: true
 
 - name: Ensure system files
@@ -216,7 +229,7 @@
     state: directory 
     recurse: true
   with_items:
-    - config/terminator
+    - .config/terminator
 
 - name: Ensure personal dot files
   copy: src='{{item.src}}'  dest='{{item.dest}}' mode='0600' owner='{{host_username}}' group='{{host_username}}'
@@ -227,7 +240,7 @@
     - {src: dots/gitignore, dest: '/home/{{host_username}}/.gitignore'}
     - {src: dots/curlrc, dest: '/home/{{host_username}}/.curlrc'}
     - {src: dots/p10k, dest: '/home/{{host_username}}/.p10k.zsh'}
-    - {src: terminator, dest: '/home/{{host_username}}/config/terminator/config'}
+    - {src: terminator, dest: '/home/{{host_username}}/.config/terminator/config'}
     - {src: dconf.ini, dest: '/home/{{host_username}}/'}
 
 - name: import dconf
@@ -282,10 +295,8 @@
   flatpak:
     name: '{{item}}'
   with_items:
-    - org.mozilla.firefox
     - com.spotify.Client
     - com.axosoft.GitKraken
-    - com.visualstudio.code
     - org.onlyoffice.desktopeditors
 
 - name: Install snap apps
@@ -294,7 +305,6 @@
     classic: true
     name: 
       - kontena-lens
-      - bluemail
+      - mailspring
       - screencloud
-      - auryo
-      - dropbox
+      - beekeeper-studio

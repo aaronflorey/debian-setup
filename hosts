@@ -3,4 +3,4 @@ ansible_connection=ssh
 
 # Normally - localhost
 [workstations]
-localhost ansible_host=192.168.1.228 ansible_user=aaron  ansible_python_interpreter=/usr/bin/python3
+localhost ansible_host=localhost ansible_connection=local ansible_user=aaron  ansible_python_interpreter=/usr/bin/python3
